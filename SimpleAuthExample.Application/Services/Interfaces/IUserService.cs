@@ -1,4 +1,5 @@
-﻿using SimpleAuthExample.Data.Models;
+﻿using SimpleAuthExample.Application.Dtos;
+using SimpleAuthExample.Data.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,5 +14,7 @@ namespace SimpleAuthExample.Application.Services.Interfaces
         Task<User> CheckPassword(User user, string password);
         Task<User> AuthenticateUser(string username, string password);
         Task<List<string>> GetRolesByUser(User user);
+        Task<(bool, string)> CreateUser(UserSignupDto userSignupDto);
+        List<UserDto> GetUsers();
     }
 }
