@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using SimpleAuthExample.Application.Dtos;
 using SimpleAuthExample.Application.Services.Interfaces;
@@ -63,7 +64,7 @@ namespace SimpleAuthExample.Application.Services.Implementation
             return user;
         }
 
-        public async Task<(bool, string)> CreateUser(UserSignupDto userSignupDto)
+        public async Task<ObjectResult> CreateUser(UserSignupDto userSignupDto)
         {
             //Check if role assigned to user exists
             var roleFound = await _roleManager.FindByNameAsync(userSignupDto.UserRole);
@@ -71,7 +72,7 @@ namespace SimpleAuthExample.Application.Services.Implementation
             if (roleFound == null)
             {
                 _logger.LogError("Role with name {0} does not exist", userSignupDto.UserRole);
-                return (false, $"UserRole \'{userSignupDto.UserRole}\' does not exist.");
+                return new BadRequestObjectResult($"UserRole \'{userSignupDto.UserRole}\' does not exist.");
             }
 
             var user = new User
@@ -92,7 +93,7 @@ namespace SimpleAuthExample.Application.Services.Implementation
             if (!result.Succeeded)
             {
                 _logger.LogInformation("Something went wrong. Failed to create user.");
-                return (false, "Something went wrong. Failed to create user.");
+                return new UnprocessableEntityObjectResult( "Something went wrong. Failed to create user.");
             }
 
             //assign user a role
@@ -102,11 +103,11 @@ namespace SimpleAuthExample.Application.Services.Implementation
             if (!userResult.Succeeded)
             {
                 _logger.LogInformation($"Couldn't assign user a role");
-                return (false, $"Couldn't assign user a role");
+                return new UnprocessableEntityObjectResult($"Couldn't assign user a role");
             }
 
 
-            return (true, "User has been added successfully.");
+            return new  OkObjectResult("User has been added successfully.");
         }
 
         public async Task<List<string>> GetRolesByUser(User user)

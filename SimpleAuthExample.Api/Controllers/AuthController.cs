@@ -56,13 +56,9 @@ namespace SimpleAuthExample.Api.Controllers
         {
 
             var userSignupDto = _mapper.Map<UserSignupDto>(model);
-            var (success, message) = await _userService.CreateUser(userSignupDto);
+            var result = await _userService.CreateUser(userSignupDto);
 
-
-            if (success)
-                return Ok(new { response = message });
-            else
-                return BadRequest(new { response = message });
+            return result;
 
         }
 
