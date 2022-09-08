@@ -1,16 +1,23 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SimpleAuthExample.Application.Services.Implementation;
 using SimpleAuthExample.Application.Services.Interfaces;
+using SimpleAuthExample.Data;
+using SimpleAuthExample.Data.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SimpleAuthExample.Api
@@ -35,6 +42,45 @@ namespace SimpleAuthExample.Api
             });
 
             services.AddTransient<IUserService, UserService>();
+            services.AddScoped<ITokenService, TokenService>();
+
+            services.AddDbContext<SimpleAuthDbContext>(options => 
+            {
+                options.UseSqlServer(Configuration.GetConnectionString("Default"),
+                    sqlOptions => sqlOptions.EnableRetryOnFailure(50));
+            });
+
+            services.AddIdentity<User, Role>(opt => {
+                opt.Password.RequireNonAlphanumeric = false;
+                opt.Password.RequireDigit = false;
+                opt.Password.RequireLowercase = false;
+                opt.Password.RequireUppercase = false;
+                opt.User.RequireUniqueEmail = true;
+            })
+                .AddEntityFrameworkStores<SimpleAuthDbContext>()
+                .AddDefaultTokenProviders();
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(option =>
+            {
+                option.SaveToken = true;
+                option.RequireHttpsMetadata = false;
+                option.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters()
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+
+                    ValidAudience = Configuration["Authentication:JwtBearer:Audience"],
+                    ValidIssuer = Configuration["Authentication:JwtBearer:Issuer"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Authentication:JwtBearer:SecretKey"]))
+                };
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -50,7 +96,7 @@ namespace SimpleAuthExample.Api
             app.UseRouting();
 
             app.UseAuthorization();
-
+            app.UseAuthentication();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
